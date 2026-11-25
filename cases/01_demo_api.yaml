@@ -1,0 +1,60 @@
+name: 01_纯接口自动化示例（登录并下单）
+description: 演示接口登录提取 Token，携带 Token 创建订单并查询校验订单列表。
+steps:
+  - type: api
+    name: 接口登录获取 Token
+    request:
+      method: POST
+      url: "{{base_url}}/demo/api/login"
+      headers:
+        Content-Type: application/json
+      json:
+        username: "{{username}}"
+        password: "{{password}}"
+    extract:
+      - name: token
+        path: $.data.token
+    assertions:
+      - type: status_code
+        target: ""
+        expected: 200
+      - type: json_equals
+        target: $.code
+        expected: 0
+
+  - type: api
+    name: 创建测试订单
+    request:
+      method: POST
+      url: "{{base_url}}/demo/api/orders"
+      headers:
+        Authorization: Bearer {{token}}
+        Content-Type: application/json
+      json:
+        item: TestFlow 自动化测试套餐
+        amount: 199
+    extract:
+      - name: order_no
+        path: $.data.order_no
+    assertions:
+      - type: status_code
+        target: ""
+        expected: 200
+      - type: json_equals
+        target: $.data.status
+        expected: PAID
+
+  - type: api
+    name: 查询订单列表并校验新建订单
+    request:
+      method: GET
+      url: "{{base_url}}/demo/api/orders"
+      headers:
+        Authorization: Bearer {{token}}
+    assertions:
+      - type: status_code
+        target: ""
+        expected: 200
+      - type: body_contains
+        target: ""
+        expected: "{{order_no}}"

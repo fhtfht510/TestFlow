@@ -1,0 +1,64 @@
+name: 02_API+UI混合自动化示例（接口造数+浏览器校验）
+description: 用接口快速登录并创建订单，然后打开浏览器注入 Token 并断言订单号在页面可见。
+steps:
+  - type: api
+    name: 接口登录获取 Token
+    request:
+      method: POST
+      url: "{{base_url}}/demo/api/login"
+      headers:
+        Content-Type: application/json
+      json:
+        username: "{{username}}"
+        password: "{{password}}"
+    extract:
+      - name: token
+        path: $.data.token
+    assertions:
+      - type: status_code
+        target: ""
+        expected: 200
+
+  - type: api
+    name: 接口创建订单
+    request:
+      method: POST
+      url: "{{base_url}}/demo/api/orders"
+      headers:
+        Authorization: Bearer {{token}}
+        Content-Type: application/json
+      json:
+        item: 混合自动化验证商品
+        amount: 299
+    extract:
+      - name: order_no
+        path: $.data.order_no
+    assertions:
+      - type: status_code
+        target: ""
+        expected: 200
+
+  - type: ui
+    name: 打开演示订单页
+    action: open
+    value: "{{base_url}}/demo/page"
+
+  - type: ui
+    name: 注入接口获取的 Token 到 LocalStorage
+    action: set_local_storage
+    locator: token
+    value: "{{token}}"
+
+  - type: ui
+    name: 刷新页面加载订单
+    action: open
+    value: "{{base_url}}/demo/page"
+
+  - type: ui
+    name: 断言页面显示新创建的订单号
+    action: assert_text
+    value: "{{order_no}}"
+
+  - type: ui
+    name: 保存页面验证截图
+    action: screenshot

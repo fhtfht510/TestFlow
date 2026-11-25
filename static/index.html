@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TestFlow 极简自动化测试工作台</title>
+  <link rel="icon" href="/static/testflow.ico" />
+  <link rel="stylesheet" href="/static/style.css?v=20261126" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" ondblclick="winToggleMaximize()">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <span>TestFlow</span>
+      <span class="brand-tag">API + UI 自动化工作台</span>
+    </div>
+    <div class="topbar-drag" ondblclick="winToggleMaximize()"></div>
+    <div class="topbar-controls">
+      <label class="control-pill">
+        <span>环境</span>
+        <select id="global-env-select"></select>
+      </label>
+      <label class="control-pill">
+        <span>UI 引擎</span>
+        <select id="global-ui-engine">
+          <option value="selenium" selected>Selenium</option>
+          <option value="playwright">Playwright</option>
+        </select>
+      </label>
+      <label class="control-pill">
+        <span>浏览器</span>
+        <select id="global-browser">
+          <option value="auto" selected>自动</option>
+          <option value="chrome">Chrome</option>
+          <option value="edge">Edge</option>
+          <option value="firefox">Firefox</option>
+        </select>
+      </label>
+      <label class="checkbox-field" title="勾选后 UI 自动化将在后台静默运行，不弹出浏览器窗口">
+        <input type="checkbox" id="global-headless" checked />
+        <span>无头模式</span>
+      </label>
+      <button id="open-allure-btn" class="btn btn-sm btn-topbar" onclick="openLatestReport()">
+        查看 Allure 报告
+      </button>
+      <div id="window-controls" class="window-controls hidden">
+        <button class="win-btn" title="最小化" onclick="winMinimize()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="2" y1="6" x2="10" y2="6"/></svg>
+        </button>
+        <button id="win-max-btn" class="win-btn" title="最大化 / 还原" onclick="winToggleMaximize()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
+        </button>
+        <button class="win-btn win-btn-close" title="关闭" onclick="winClose()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar">
+      <button class="nav-btn active" data-tab="debug" onclick="switchTab('debug')">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </span>
+        <span class="nav-text">
+          <span class="nav-title">接口调试</span>
+          <small>Postman 模式 · cURL</small>
+        </span>
+      </button>
+      <button class="nav-btn" data-tab="cases" onclick="switchTab('cases')">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        </span>
+        <span class="nav-text">
+          <span class="nav-title">自动化用例</span>
+          <small>API + UI 零代码编排</small>
+        </span>
+      </button>
+      <button class="nav-btn" data-tab="envs" onclick="switchTab('envs')">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        </span>
+        <span class="nav-text">
+          <span class="nav-title">环境与变量</span>
+          <small>管理 base_url / 账号</small>
+        </span>
+      </button>
+      <button class="nav-btn" data-tab="report" onclick="openLatestReport()">
+        <span class="nav-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
+        <span class="nav-text">
+          <span class="nav-title">测试报告</span>
+          <small>内置 Allure 可视化</small>
+        </span>
+      </button>
+      <div class="sidebar-tip">
+        <strong>快速提示</strong>
+        <p>1. 用 <code>{{变量名}}</code> 引用环境变量或上一步提取的字段。</p>
+        <p>2. 调试通的接口可一键「保存为用例步骤」。</p>
+        <p>3. 跑完后直接在「测试报告」页查看 Allure。</p>
+        <button class="btn btn-sm btn-outline full-width" style="margin-top:8px;" onclick="openShortcutsModal()">快捷键一览 (F1)</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- Tab 1: 接口调试 -->
+      <section id="tab-debug" class="tab-panel active">
+        <div class="panel-header">
+          <h2>接口调试 (Postman 模式)</h2>
+          <div class="header-actions">
+            <button class="btn btn-outline" onclick="openHistoryModal()">历史记录</button>
+            <button class="btn btn-outline" onclick="formatDebugJson()">格式化 JSON</button>
+            <button class="btn btn-outline" onclick="openCurlModal()">导入 cURL</button>
+            <button class="btn btn-outline" onclick="triggerImportCollection()">导入集合</button>
+            <button class="btn btn-secondary" onclick="openSaveStepModal()">+ 保存为用例步骤</button>
+          </div>
+        </div>
+
+        <div class="request-bar">
+          <select id="dbg-method" class="method-select">
+            <option>GET</option>
+            <option selected>POST</option>
+            <option>PUT</option>
+            <option>DELETE</option>
+            <option>PATCH</option>
+          </select>
+          <input id="dbg-url" class="url-input" value="{{base_url}}/demo/api/login" placeholder="输入接口 URL，支持 {{base_url}}/path" />
+          <label class="dbg-timeout-wrap" title="请求超时时间（秒）">
+            <span>超时</span>
+            <input id="dbg-timeout" type="number" min="1" value="30" />
+            <span>s</span>
+          </label>
+          <button id="dbg-send-btn" class="btn btn-primary" onclick="sendDebugRequest()" title="发送请求 (Ctrl+Enter)">发送请求</button>
+        </div>
+
+        <div class="sub-tabs">
+          <button class="sub-tab active" onclick="switchDebugSubTab('body', this)">Body</button>
+          <button class="sub-tab" onclick="switchDebugSubTab('headers', this)">Headers</button>
+          <button class="sub-tab" onclick="switchDebugSubTab('params', this)">Query Params</button>
+        </div>
+
+        <div id="dbg-sub-body" class="sub-panel active">
+          <div class="body-type-bar">
+            <label><input type="radio" name="dbg-body-type" value="json" checked onchange="switchDebugBodyType(this.value)" /> JSON</label>
+            <label><input type="radio" name="dbg-body-type" value="form_urlencoded" onchange="switchDebugBodyType(this.value)" /> x-www-form-urlencoded</label>
+            <label><input type="radio" name="dbg-body-type" value="form_data" onchange="switchDebugBodyType(this.value)" /> form-data（支持文件）</label>
+            <label><input type="radio" name="dbg-body-type" value="raw" onchange="switchDebugBodyType(this.value)" /> Raw</label>
+          </div>
+          <div id="dbg-body-text-wrap">
+            <textarea id="dbg-body" class="code-area" rows="7" placeholder='{"username": "{{username}}", "password": "{{password}}"}'>{"username": "{{username}}", "password": "{{password}}"}</textarea>
+          </div>
+          <div id="dbg-body-form-wrap" class="hidden">
+            <div class="step-pane-toolbar" style="margin-bottom:6px;">
+              <span class="step-pane-hint">表单键值对（form-data 下选择“文件”时填本地文件绝对路径）</span>
+              <button class="btn btn-xs btn-outline" onclick="addDebugFormRow()">+ 添加字段</button>
+            </div>
+            <table class="kv-mini-table">
+              <thead><tr><th width="28%">Key</th><th width="110" id="dbg-form-type-th" class="hidden">类型</th><th>Value / 文件路径</th><th width="54">操作</th></tr></thead>
+              <tbody id="dbg-form-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="dbg-sub-headers" class="sub-panel">
+          <textarea id="dbg-headers" class="code-area" rows="5" placeholder='{"Content-Type": "application/json"}'>{"Content-Type": "application/json"}</textarea>
+        </div>
+        <div id="dbg-sub-params" class="sub-panel">
+          <textarea id="dbg-params" class="code-area" rows="5" placeholder='{"page": 1}'></textarea>
+        </div>
+
+        <div class="response-box">
+          <div class="response-header">
+            <div class="resp-tabs">
+              <button class="resp-tab active" onclick="switchRespTab('body', this)">响应体</button>
+              <button class="resp-tab" onclick="switchRespTab('headers', this)">响应头</button>
+            </div>
+            <div class="response-right">
+              <div id="dbg-meta" class="meta-badges"></div>
+              <button class="btn btn-xs btn-topbar" onclick="copyDebugResponse()">复制内容</button>
+            </div>
+          </div>
+          <pre id="dbg-response" class="response-pre">点击“发送请求”查看返回结果...</pre>
+          <pre id="dbg-resp-headers" class="response-pre hidden">暂无响应头信息</pre>
+        </div>
+      </section>
+
+      <!-- Tab 2: 自动化用例 -->
+      <section id="tab-cases" class="tab-panel">
+        <div class="cases-layout">
+          <div class="case-list-col">
+            <div class="col-header">
+              <h3>用例列表</h3>
+              <button class="btn btn-sm btn-primary" onclick="createNewCase()">+ 新建</button>
+            </div>
+            <input id="case-search" class="search-input" placeholder="搜索用例名称或文件名..." oninput="filterCases()" />
+            <div class="case-list-toolbar">
+              <div class="case-list-toolbar-btns">
+                <button class="btn btn-xs btn-outline" onclick="toggleSelectAllCases()">全选</button>
+                <button class="btn btn-xs btn-outline" onclick="triggerImportYaml()">导入 YAML</button>
+                <button class="btn btn-xs btn-outline" onclick="triggerImportCollection()">导入集合</button>
+              </div>
+              <span id="case-count-text" class="case-count-text">共 0 条</span>
+            </div>
+            <input type="file" id="import-yaml-input" accept=".yaml,.yml" class="hidden" onchange="handleImportYamlFile(event)" />
+            <input type="file" id="import-collection-input" accept=".json" class="hidden" onchange="handleImportCollectionFile(event)" />
+            <div id="case-list" class="case-list"></div>
+            <div class="col-footer">
+              <button class="btn btn-success full-width" onclick="runSelectedCases()">▶ 批量运行选中用例</button>
+            </div>
+          </div>
+
+          <div class="case-editor-col">
+            <div class="editor-header">
+              <div class="editor-title-group">
+                <input id="case-name" class="title-input" placeholder="用例名称" />
+                <input id="case-desc" class="desc-input" placeholder="用例描述（可选）" />
+              </div>
+              <div class="editor-actions">
+                <button id="case-undo-btn" class="btn btn-outline btn-icon" onclick="undoCase()" title="撤销上一步修改 (Ctrl+Z)" disabled>↶</button>
+                <button id="case-redo-btn" class="btn btn-outline btn-icon" onclick="redoCase()" title="重做修改 (Ctrl+Y / Ctrl+Shift+Z)" disabled>↷</button>
+                <button id="save-case-btn" class="btn btn-outline" onclick="saveCurrentCase()" title="保存用例 (Ctrl+S)">保存</button>
+                <button class="btn btn-outline" onclick="duplicateCurrentCase()">复制</button>
+                <button class="btn btn-outline" onclick="exportCurrentCaseYaml()">导出</button>
+                <button class="btn btn-primary" onclick="runCurrentCase()" title="保存并运行当前用例 (Ctrl+Enter)">▶ 运行当前用例</button>
+                <button class="btn btn-danger-outline" onclick="deleteCurrentCase()">删除</button>
+              </div>
+            </div>
+
+            <div id="run-result-banner" class="run-banner hidden">
+              <div class="run-banner-top">
+                <span id="run-status-badge" class="badge"></span>
+                <span id="run-summary-text"></span>
+                <div class="run-banner-actions">
+                  <button id="stop-run-btn" class="btn btn-sm btn-danger hidden" onclick="stopRunningTests()">■ 停止运行</button>
+                  <button class="btn btn-sm btn-outline" onclick="toggleRunLog()">查看/隐藏日志</button>
+                  <button id="banner-allure-btn" class="btn btn-sm btn-primary" onclick="openLatestReport()">查看报告</button>
+                </div>
+              </div>
+              <pre id="run-log-pre" class="run-log hidden"></pre>
+            </div>
+
+            <div id="steps-container" class="steps-container"></div>
+
+            <div class="add-step-bar">
+              <button class="btn btn-outline" onclick="addApiStep()">+ 添加接口步骤 (API)</button>
+              <button class="btn btn-outline" onclick="addUiStep()">+ 添加浏览器步骤 (UI)</button>
+              <button class="btn btn-outline" onclick="openCurlModal('case')">+ 从 cURL 添加步骤</button>
+              <div style="margin-left:auto;display:flex;gap:6px;">
+                <button class="btn btn-sm btn-outline" onclick="collapseAllSteps(true)">全部折叠</button>
+                <button class="btn btn-sm btn-outline" onclick="collapseAllSteps(false)">全部展开</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: 环境与变量 -->
+      <section id="tab-envs" class="tab-panel">
+        <div class="panel-header">
+          <h2>环境与变量配置</h2>
+          <div class="header-actions">
+            <button id="env-undo-btn" class="btn btn-outline btn-icon" onclick="undoEnv()" title="撤销环境变量修改 (Ctrl+Z)" disabled>↶</button>
+            <button id="env-redo-btn" class="btn btn-outline btn-icon" onclick="redoEnv()" title="重做环境变量修改 (Ctrl+Y / Ctrl+Shift+Z)" disabled>↷</button>
+            <button class="btn btn-outline" onclick="addEnvironment()">+ 新增环境</button>
+            <button class="btn btn-danger-outline" onclick="deleteCurrentEnvironment()">删除当前环境</button>
+            <button id="save-envs-btn" class="btn btn-primary" onclick="saveEnvs()" title="保存环境配置 (Ctrl+S)">保存配置</button>
+          </div>
+        </div>
+        <div class="env-editor-layout">
+          <div class="env-tabs-col" id="env-list"></div>
+          <div class="env-vars-col">
+            <div class="col-header">
+              <h3 id="editing-env-title">环境变量</h3>
+              <button class="btn btn-sm btn-outline" onclick="addEnvVarRow()">+ 添加变量</button>
+            </div>
+            <table class="kv-table">
+              <thead>
+                <tr><th>变量名 (Key)</th><th>变量值 (Value)</th><th width="70">操作</th></tr>
+              </thead>
+              <tbody id="env-vars-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 4: 测试报告 -->
+      <section id="tab-report" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2>测试报告</h2>
+            <small id="report-updated-at" style="color:#64748b;">尚未加载报告</small>
+          </div>
+          <div class="header-actions">
+            <div class="sub-tabs" style="margin:0;">
+              <button id="rep-btn-allure" class="sub-tab active" onclick="switchReportKind('allure')">Allure 报告</button>
+              <button id="rep-btn-builtin" class="sub-tab" onclick="switchReportKind('builtin')">内置轻量报告（免环境）</button>
+            </div>
+            <button class="btn btn-outline" onclick="refreshReportFrame()">刷新报告</button>
+            <button class="btn btn-secondary" onclick="openReportInBrowser()">浏览器打开</button>
+          </div>
+        </div>
+        <div id="report-empty" class="report-empty hidden">
+          暂无测试报告，请先在「自动化用例」页面点击运行一次测试。
+        </div>
+        <iframe id="report-iframe" class="report-iframe hidden" src="about:blank"></iframe>
+      </section>
+    </main>
+  </div>
+
+  <!-- 保存到用例弹窗 -->
+  <div id="save-step-modal" class="modal hidden">
+    <div class="modal-card">
+      <h3>保存当前接口为用例步骤</h3>
+      <label class="field-label">步骤名称</label>
+      <input id="modal-step-name" class="full-input" placeholder="例如：登录获取 Token" />
+      <label class="field-label">目标用例</label>
+      <select id="modal-target-case" class="full-input"></select>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeSaveStepModal()">取消</button>
+        <button class="btn btn-primary" onclick="confirmSaveStepToCase()">确认保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入 cURL 弹窗 -->
+  <div id="curl-modal" class="modal hidden">
+    <div class="modal-card" style="width:520px;">
+      <h3>导入 cURL 命令</h3>
+      <label class="field-label">粘贴浏览器 F12 / Postman 复制的 cURL 命令</label>
+      <textarea id="curl-input" class="code-area" rows="7" placeholder="curl -X POST 'http://127.0.0.1:8000/demo/api/login' -H 'Content-Type: application/json' -d '{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;123456&quot;}'"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeCurlModal()">取消</button>
+        <button class="btn btn-primary" onclick="confirmImportCurl()">解析并填入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 调试历史记录弹窗 -->
+  <div id="history-modal" class="modal hidden">
+    <div class="modal-card" style="width:620px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3>最近调试历史（最多保留 20 条）</h3>
+        <button class="btn btn-xs btn-danger-outline" onclick="clearDebugHistory()">清空历史</button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeHistoryModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷键一览弹窗 -->
+  <div id="shortcuts-modal" class="modal hidden">
+    <div class="modal-card" style="width:540px;">
+      <h3>快捷键一览</h3>
+      <table class="shortcuts-table">
+        <thead>
+          <tr><th>快捷键</th><th>功能说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>撤销当前用例或环境变量修改（与顶部 ↶ 按钮同步，编辑框内外均可撤销）</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>Y</kbd> / <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>重做已撤销的修改（与顶部 ↷ 按钮同步，编辑框内外均可重做）</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>保存当前用例或环境配置</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td>在「接口调试」页发送请求；在「自动化用例」页保存并运行当前用例</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td>切换到「自动化用例」页并聚焦用例搜索框</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>N</kbd></td><td>新建自动化用例（非输入框聚焦时）</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>1</kbd> ~ <kbd>4</kbd></td><td>快速切换左侧 4 个功能页（调试 / 用例 / 环境 / 报告）</td></tr>
+          <tr><td><kbd>F1</kbd></td><td>打开或关闭本快捷键一览弹窗</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>关闭当前打开的弹窗</td></tr>
+        </tbody>
+      </table>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeShortcutsModal()">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/static/app.js?v=20261126"></script>
+</body>
+</html>

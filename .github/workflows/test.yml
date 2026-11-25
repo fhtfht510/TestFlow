@@ -1,0 +1,38 @@
+name: TestFlow CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check Python & JS syntax
+        run: |
+          python -m py_compile app.py build_exe.py server/*.py engine/*.py
+          node --check static/app.js
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+      - name: Start demo server & run Pytest
+        run: |
+          python app.py --web &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          TESTFLOW_ENV=local_demo TESTFLOW_UI_ENGINE=playwright TESTFLOW_HEADLESS=1 pytest engine/test_runner.py -v --alluredir=reports/allure-results

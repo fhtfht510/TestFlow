@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+reports/
+.env
+*.log
+.DS_Store
+drivers/
+build/
+dist/
+*.spec
+.venv/
+venv/
+.vscode/
+.idea/
+Thumbs.db
